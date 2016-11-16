@@ -1,0 +1,84 @@
+apply plugin: 'liquibase'
+
+
+def liquibaseChangeLogPath = file(liquibaseChangeLog).getAbsolutePath()
+
+liquibase {
+    activities {
+        main {
+            changeLogFile liquibaseChangeLogPath
+            username dbUser
+            password dbPassword
+            url dbUrl
+            driver dbDriver
+        }
+    }
+}
+
+def changeLogGeneratedDir = file("build/generated/liquibase/changelog").getAbsolutePath()
+
+task prepareGeneratedDir << {
+    def generatedDir = file(changeLogGeneratedDir)
+
+    generatedDir.mkdirs();
+}
+
+def buildTimestamp() {
+    def date = new Date()
+    def formattedDate = date.format('yyyyMMddHHmmss')
+    return formattedDate
+}
+
+/// Hibernate-driven changelog generation - this task will scan the annotated classes
+/// and compare to the existing database, and will spit out a change script corresponding to
+/// the differences.  Maybe a good starting point for change scripts, although it seems to
+/// have some issues with different naming conventions than hbm2ddl.
+configurations {
+    liquibaseHibernate
+}
+
+dependencies {
+    // Hey guys, it's Unexpected Dependency Time!!! - see https://jira.spring.io/browse/DATAJPA-367
+    liquibaseHibernate "org.springframework:spring-aspects"
+
+    liquibaseHibernate group: 'org.liquibase.ext', name: 'liquibase-hibernate4', version: '3.5'
+}
+
+task liquibaseHibernateDiffChangeLog(dependsOn: [ compileJava, prepareGeneratedDir ], type: JavaExec) {
+
+    group = "liquibase"
+
+    classpath sourceSets.main.runtimeClasspath
+    classpath configurations.liquibaseHibernate
+    main = "liquibase.integration.commandline.Main"
+
+    //args "--logLevel=debug"
+    args "--changeLogFile=" + changeLogGeneratedDir + "/" + buildTimestamp() +"_changelog.xml"
+    args "--referenceUrl=hibernate:spring:" + modelPackageName + "?dialect=org.hibernate.dialect.MySQL5Dialect&hibernate.ejb.naming_strategy=com.norulesweb.authapp.core.common.HibernateUppercaseNamingStrategy"
+    args "--username="+dbUser
+    args "--password="+dbPassword
+    args "--url="+dbUrl
+    args "--driver="+dbDriver
+    args "diffChangeLog"
+
+}
+
+/// End Hibernate-driven changelog generator
+
+
+task generateInitialChangelog(dependsOn: [ prepareGeneratedDir ], type: JavaExec) {
+    group = "liquibase"
+
+    classpath sourceSets.main.runtimeClasspath
+    classpath configurations.liquibaseHibernate
+    main = "liquibase.integration.commandline.Main"
+
+    args "--changeLogFile=" + changeLogGeneratedDir + "/" + buildTimestamp() +"_changelog.xml"
+    args "--username="+dbUser
+    args "--password="+dbPassword
+    args "--url="+dbUrl
+    args "--driver="+dbDriver
+    args "generateChangeLog"
+}
+
+
