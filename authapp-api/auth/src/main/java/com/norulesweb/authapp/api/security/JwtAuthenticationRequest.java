@@ -1,5 +1,7 @@
 package com.norulesweb.authapp.api.security;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 
 public class  JwtAuthenticationRequest implements Serializable {
@@ -18,6 +20,7 @@ public class  JwtAuthenticationRequest implements Serializable {
 		this.setPassword(password);
 	}
 
+	@JsonProperty("username")
 	public String getUsername() {
 		return this.username;
 	}
@@ -26,6 +29,7 @@ public class  JwtAuthenticationRequest implements Serializable {
 		this.username = username;
 	}
 
+	@JsonProperty("password")
 	public String getPassword() {
 		return this.password;
 	}

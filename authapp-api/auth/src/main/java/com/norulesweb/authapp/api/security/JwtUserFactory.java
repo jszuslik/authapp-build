@@ -5,6 +5,7 @@ import com.norulesweb.authapp.core.model.security.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +24,7 @@ public final class JwtUserFactory {
 				                  user.getPassword(),
 				                  mapToGrantedAuthorities(user.getAuthorities()),
 				                  user.getEnabled(),
-				                  user.getLastPasswordResetDate()
+				                  Date.from(user.getLastPasswordResetDate())
 		);
 	}
 

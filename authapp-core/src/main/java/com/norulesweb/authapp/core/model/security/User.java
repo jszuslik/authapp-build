@@ -1,15 +1,19 @@
 package com.norulesweb.authapp.core.model.security;
 
 import com.norulesweb.authapp.core.model.common.ModelBase;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.Date;
+import java.time.Instant;
+import java.util.LinkedList;
 import java.util.List;
 
 @Entity
 @Table(name = "USER")
+@EntityListeners(AuditingEntityListener.class)
 public class User extends ModelBase {
 
 	private String username;
@@ -24,11 +28,16 @@ public class User extends ModelBase {
 
 	private Boolean enabled;
 
-	private Date lastPasswordResetDate;
+	private Instant lastPasswordResetDate;
 
 	private List<Authority> authorities;
 
 	public User() { }
+
+	public User(User user){
+		super(user);
+		setLastPasswordResetDate(user.getLastPasswordResetDate());
+	}
 
 	@Column(name = "USERNAME", length = 50, unique = true)
 	@NotNull
@@ -103,19 +112,24 @@ public class User extends ModelBase {
 	public List<Authority> getAuthorities() {
 		return authorities;
 	}
-
 	public void setAuthorities(List<Authority> authorities) {
 		this.authorities = authorities;
 	}
+	public void addAuthority(Authority authority){
+		if(this.authorities == null){
+			this.authorities = new LinkedList<>();
+		}
+		this.authorities.add(authority);
+	}
 
+	@CreatedDate
 	@Column(name = "LASTPASSWORDRESETDATE")
-	@Temporal(TemporalType.TIMESTAMP)
 	@NotNull
-	public Date getLastPasswordResetDate() {
+	public Instant getLastPasswordResetDate() {
 		return lastPasswordResetDate;
 	}
 
-	public void setLastPasswordResetDate(Date lastPasswordResetDate) {
+	public void setLastPasswordResetDate(Instant lastPasswordResetDate) {
 		this.lastPasswordResetDate = lastPasswordResetDate;
 	}
 }

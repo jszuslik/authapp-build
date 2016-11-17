@@ -1,4 +1,7 @@
 include("authapp-api")
 include("authapp-api:auth")
 include("authapp-core")
+include("authapp-utils")
+include("authapp-utils:core")
+include("authapp-utils:authapp-data-load")
 

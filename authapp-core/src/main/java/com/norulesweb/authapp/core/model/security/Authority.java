@@ -4,6 +4,7 @@ import com.norulesweb.authapp.core.model.common.ModelBase;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+import java.util.LinkedList;
 import java.util.List;
 
 @Entity
@@ -32,5 +33,11 @@ public class Authority extends ModelBase {
 	}
 	public void setUsers(List<User> users) {
 		this.users = users;
+	}
+	public void addUser(User user){
+		if(this.users == null){
+			this.users = new LinkedList<>();
+		}
+		this.users.add(user);
 	}
 }
