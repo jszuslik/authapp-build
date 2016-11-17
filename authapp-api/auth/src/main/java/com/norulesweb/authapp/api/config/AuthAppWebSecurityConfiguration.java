@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -49,6 +50,10 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 	public JwtAuthenticationTokenFilter authenticationTokenFilterBean() throws Exception {
 		return new JwtAuthenticationTokenFilter();
 	}
+	@Override
+	public void configure(WebSecurity web) throws Exception {
+		web.ignoring().antMatchers("/api-auth/auth/**");
+	}
 
 	@Override
 	protected void configure(HttpSecurity httpSecurity) throws Exception {
@@ -58,20 +63,12 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 
 				.exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
 				// don't create session
-				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
 
-//				.authorizeRequests()
-				//.antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-				// allow anonymous resource requests
-		httpSecurity
 				.authorizeRequests()
-				.antMatchers("/api-auth/auth").permitAll()
-				.anyRequest().authenticated();
+				.anyRequest().authenticated().and()
 
-		// Custom JWT based security filter
-		httpSecurity
-			.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
 
 		// disable page caching
 		httpSecurity.headers().cacheControl();
