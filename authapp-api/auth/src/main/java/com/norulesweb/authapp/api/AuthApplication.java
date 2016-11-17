@@ -38,7 +38,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 		repositoryFactoryBeanClass = AppRepositoryFactoryBean.class,
 		basePackages = { "com.norulesweb.authapp.core.repository" }
 )
-@EntityScan(basePackages = { "com.norulesweb.authapp.core" })
+@EntityScan(basePackages = { "com.norulesweb.authapp.core.model" })
 public class AuthApplication extends SpringBootServletInitializer {
 	private static final Logger log = LoggerFactory.getLogger(AuthApplication.class);
 

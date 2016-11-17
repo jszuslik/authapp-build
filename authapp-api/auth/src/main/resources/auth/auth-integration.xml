@@ -20,7 +20,7 @@
 						   http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
     <!-- Logging of request/response -->
-    <mvc:annotation-driven />
+
     <logging-channel-adapter id="logger" level="INFO"/>
 
     <channel id="authInput">
@@ -35,11 +35,6 @@
         </interceptors>
     </channel>
 
-    <channel id="authProtected">
-        <interceptors>
-            <wire-tap id="authServiceProtected" channel="logger"/>
-        </interceptors>
-    </channel>
 
     <context:component-scan base-package="com.norulesweb.authapp.api"/>
 
@@ -47,46 +42,13 @@
 
     <beans:bean id="authAppService" class="com.norulesweb.authapp.api.security.controller.AuthAppService"/>
 
-    <int-http:inbound-gateway
-            role="ADMIN"
-            request-channel="authProtected"
-            supported-methods="GET"
-            reply-timeout="30000"
-            path="/protected"/>
-
-    <transformer
-            input-channel="authInput"
-            ref="authAppService"
-            method="getProtectedGreeting"/>
-
-    <int-http:inbound-gateway
-            request-channel="authProtected"
-            supported-methods="GET"
-            reply-timeout="30000"
-            path="/user"/>
-
-    <transformer
-            input-channel="authInput"
-            ref="authAppService"
-            method="getAuthenticatedUser"/>
-
-    <int-http:inbound-gateway
-            request-channel="authProtected"
-            supported-methods="GET"
-            reply-timeout="30000"
-            path="/refresh"/>
-
-    <transformer
-            input-channel="authInput"
-            ref="authAppService"
-            method="refreshAndGetAuthenticationToken"/>
-
     <!-- HTTP inbound gateway will listen for requests -->
     <int-http:inbound-gateway
             request-channel="authRequest"
             supported-methods="POST"
             reply-timeout="30000"
-            path="/auth"/>
+            path="/auth">
+    </int-http:inbound-gateway>
     <json-to-object-transformer
         type="com.norulesweb.authapp.api.security.JwtAuthenticationRequest"
         input-channel="authRequest"

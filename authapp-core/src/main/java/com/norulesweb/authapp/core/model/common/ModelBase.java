@@ -1,7 +1,7 @@
 package com.norulesweb.authapp.core.model.common;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.springframework.data.annotation.Id;
+import javax.persistence.Id;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;

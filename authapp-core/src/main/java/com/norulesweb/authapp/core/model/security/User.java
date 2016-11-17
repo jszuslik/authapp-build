@@ -1,6 +1,6 @@
 package com.norulesweb.authapp.core.model.security;
 
-import com.norulesweb.authapp.core.model.common.AuditableModelBase;
+import com.norulesweb.authapp.core.model.common.ModelBase;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
@@ -10,7 +10,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "USER")
-public class User extends AuditableModelBase {
+public class User extends ModelBase {
 
 	private String username;
 

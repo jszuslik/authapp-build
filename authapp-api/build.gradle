@@ -8,7 +8,7 @@ buildscript {
     }
 }
 
-subprojects {
+allprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
     apply plugin: 'io.spring.dependency-management'
@@ -32,9 +32,32 @@ subprojects {
             mavenBom 'io.spring.platform:platform-bom:2.0.1.RELEASE'
         }
     }
+
+    dependencies {
+        compile("org.apache.commons:commons-lang3")
+        compile("org.springframework.boot:spring-boot-starter-integration")
+        compile("org.springframework.boot:spring-boot-starter-web")
+        compile("org.springframework.boot:spring-boot-starter-security")
+        compile("org.springframework.boot:spring-boot-starter-integration")
+        compile("org.springframework.integration:spring-integration-xml")
+        compile("org.springframework.integration:spring-integration-http")
+        compile("com.fasterxml.jackson.core:jackson-databind")
+        compile("mysql:mysql-connector-java")
+        compile("org.jadira.usertype:usertype.core:4.0.0.GA")
+        compile("org.jadira.usertype:usertype.extended:4.0.0.GA")
+
+        // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt
+        compile group: 'io.jsonwebtoken', name: 'jjwt', version: '0.7.0'
+
+        // https://mvnrepository.com/artifact/org.springframework.mobile/spring-mobile-device
+        compile group: 'org.springframework.mobile', name: 'spring-mobile-device', version: '1.1.5.RELEASE'
+
+    }
 }
 
-project(":authapp-api:auth") {
+configure( [
+        project(":authapp-api:auth")
+] ) {
     apply plugin: 'spring-boot'
     apply plugin: 'war'
 
@@ -42,44 +65,14 @@ project(":authapp-api:auth") {
         // For .war repackaging
         providedRuntime
     }
-    jar {
-        baseName = "authapp-api-auth"
-    }
-
-    war {
-        baseName = "authapp-api-auth"
-    }
 
     dependencies {
-        compile("org.springframework.security:spring-security-web")
-        compile("org.apache.commons:commons-lang3")
-        compile("org.springframework.boot:spring-boot-starter-web")
-        compile("org.springframework.boot:spring-boot-starter-security")
-        compile("org.springframework.boot:spring-boot-starter-actuator")
-        compile("org.springframework.boot:spring-boot-starter-data-jpa")
-        compile("org.springframework.boot:spring-boot-starter-integration")
-        compile("org.springframework.integration:spring-integration-file")
-        compile("org.springframework.integration:spring-integration-stream")
-        compile("org.springframework.integration:spring-integration-xml")
-        compile("org.springframework.integration:spring-integration-http")
-        compile("org.hibernate:hibernate-entitymanager")
-        compile("org.hibernate:hibernate-validator")
-        compile("com.fasterxml.jackson.core:jackson-databind")
-        // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt
-        compile group: 'io.jsonwebtoken', name: 'jjwt', version: '0.7.0'
-        // https://mvnrepository.com/artifact/org.springframework.mobile/spring-mobile-device
-        compile group: 'org.springframework.mobile', name: 'spring-mobile-device', version: '1.1.5.RELEASE'
-        // https://mvnrepository.com/artifact/mysql/mysql-connector-java
-        compile group: 'mysql', name: 'mysql-connector-java', version: '6.0.5'
-
-        compile("org.jadira.usertype:usertype.core:4.0.0.GA")
-        compile("org.jadira.usertype:usertype.extended:4.0.0.GA")
-
         compile("javax.mail:mail:1.4")                // Logback email notification support
         compile("javax.activation:activation:1.1.1")  // Logback email notification support
 
         compile("org.springframework.boot:spring-boot-starter-actuator")
         providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
+        compile("org.springframework.security:spring-security-web")
 
         compile project(":authapp-core")
     }
@@ -92,5 +85,15 @@ project(":authapp-api:auth") {
             from zipTree(it)
             into outputDir
         }
+    }
+}
+
+project(":authapp-api:auth") {
+    jar {
+        baseName = "authapp-api-auth"
+    }
+
+    war {
+        baseName = "authapp-api-auth"
     }
 }

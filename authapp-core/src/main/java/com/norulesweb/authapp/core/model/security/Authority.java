@@ -1,14 +1,14 @@
 package com.norulesweb.authapp.core.model.security;
 
-import com.norulesweb.authapp.core.model.common.AuditableModelBase;
+import com.norulesweb.authapp.core.model.common.ModelBase;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Entity
-@Table(name = "AUTHORITY")
-public class Authority extends AuditableModelBase{
+@Table(name = "AUTHORITIES")
+public class Authority extends ModelBase {
 
 	private AuthorityName name;
 
