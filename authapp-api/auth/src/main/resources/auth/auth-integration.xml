@@ -35,6 +35,22 @@
         </interceptors>
     </channel>
 
+    <channel id="authRefresh">
+        <interceptors>
+            <wire-tap id="authServiceRefresh" channel="logger"/>
+        </interceptors>
+    </channel>
+    <channel id="authUser">
+        <interceptors>
+            <wire-tap id="authServiceUser" channel="logger"/>
+        </interceptors>
+    </channel>
+    <channel id="authProtected">
+        <interceptors>
+            <wire-tap id="authServiceProtected" channel="logger"/>
+        </interceptors>
+    </channel>
+
 
     <context:component-scan base-package="com.norulesweb.authapp.api"/>
 
@@ -43,6 +59,37 @@
     <beans:bean id="authAppService" class="com.norulesweb.authapp.api.security.controller.AuthAppService"/>
 
     <!-- HTTP inbound gateway will listen for requests -->
+    <int-http:inbound-gateway
+            role="ADMIN"
+            request-channel="authProtected"
+            supported-methods="GET"
+            reply-timeout="30000"
+            path="/protected"/>
+    <transformer
+            input-channel="authProtected"
+            ref="authAppService"
+            method="getProtectedGreeting"/>
+
+    <int-http:inbound-gateway
+            request-channel="authUser"
+            supported-methods="GET"
+            reply-timeout="30000"
+            path="/user"/>
+    <transformer
+            input-channel="authUser"
+            ref="authAppService"
+            method="getAuthenticatedUser"/>
+
+    <int-http:inbound-gateway
+            request-channel="authRefresh"
+            supported-methods="GET"
+            reply-timeout="30000"
+            path="/refresh"/>
+    <transformer
+            input-channel="authRefresh"
+            ref="authAppService"
+            method="refreshAndGetAuthenticationToken"/>
+
     <int-http:inbound-gateway
             request-channel="authRequest"
             supported-methods="POST"

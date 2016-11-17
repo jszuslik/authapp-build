@@ -73,5 +73,34 @@ public class AuthAppService {
 		// Return the token
 		return ResponseEntity.ok(new JwtAuthenticationResponse(token));
 	}
+	@Transformer
+	public ResponseEntity<?> refreshAndGetAuthenticationToken(){
+		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+
+		String token = request.getHeader(tokenHeader);
+		String username = jwtTokenUtil.getUsernameFromToken(token);
+		JwtUser user = userDetailsService.loadUserByUsername(username);
+
+		if (jwtTokenUtil.canTokenBeRefreshed(token, user.getLastPasswordResetDate())) {
+			String refreshedToken = jwtTokenUtil.refreshToken(token);
+			return ResponseEntity.ok(new JwtAuthenticationResponse(refreshedToken));
+		} else {
+			return ResponseEntity.badRequest().body(null);
+		}
+
+	}
+	@Transformer
+	public JwtUser getAuthenticatedUser() {
+		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+		String token = request.getHeader(tokenHeader);
+		String username = jwtTokenUtil.getUsernameFromToken(token);
+		JwtUser user = userDetailsService.loadUserByUsername(username);
+		return user;
+	}
+
+	@Transformer
+	public ResponseEntity<?> getProtectedGreeting(){
+		return ResponseEntity.ok("Greetings from admin protected method!");
+	}
 
 }
