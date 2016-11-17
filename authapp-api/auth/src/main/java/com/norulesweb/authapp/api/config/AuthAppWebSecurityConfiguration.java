@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.sql.DataSource;
 
@@ -35,7 +36,8 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 	@Autowired
 	public void configureAuthentication(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
 		authenticationManagerBuilder.jdbcAuthentication().dataSource(this.dataSource)
-				.usersByUsernameQuery("select USERNAME as principal, PASSWORD as credentials, true from user where USERNAME = ?");
+				.usersByUsernameQuery("select USERNAME as principal, PASSWORD as credentials, true from user where USERNAME = ?")
+				.authoritiesByUsernameQuery("select u.username, a.authority from user u join authority a on u.userId = a.userId where username = ?");
 	}
 
 	@Bean
@@ -54,24 +56,26 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 				// we don't need CSRF because our token is invulnerable
 				.csrf().disable()
 
+				.exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
 				// don't create session
-				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
 //				.authorizeRequests()
 				//.antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
 				// allow anonymous resource requests
-				.antMatcher("/api-auth/auth").anonymous();
+		httpSecurity
+				.authorizeRequests()
+				.antMatchers("/api-auth/auth").permitAll()
+				.anyRequest().authenticated();
 
 		// Custom JWT based security filter
-//		httpSecurity
-//				// .addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class)
-//				.authorizeRequests()
-//				.anyRequest().hasRole("ADMIN").and()
-//				.exceptionHandling().authenticationEntryPoint(unauthorizedHandler);
+		httpSecurity
+			.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
 
 		// disable page caching
 		httpSecurity.headers().cacheControl();
 	}
+
 
 }

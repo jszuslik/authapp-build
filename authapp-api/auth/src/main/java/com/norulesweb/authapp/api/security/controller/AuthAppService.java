@@ -100,6 +100,7 @@ public class AuthAppService {
 
 	@Transformer
 	public ResponseEntity<?> getProtectedGreeting(){
+		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		return ResponseEntity.ok("Greetings from admin protected method!");
 	}
 

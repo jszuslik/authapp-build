@@ -60,7 +60,6 @@
 
     <!-- HTTP inbound gateway will listen for requests -->
     <int-http:inbound-gateway
-            role="ADMIN"
             request-channel="authProtected"
             supported-methods="GET"
             reply-timeout="30000"

@@ -74,30 +74,44 @@ public class Initializer {
 	 public void initializeAuthorities(){
 		 PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+		 User adminUser = new User();
+		 adminUser.setUsername(userName);
+		 adminUser.setPassword(passwordEncoder.encode(userPassword));
+		 adminUser.setFirstname(userFirstName);
+		 adminUser.setLastname(userLastName);
+		 adminUser.setEmail(userEmail);
+		 adminUser.setEnabled(enabled);
+
+		 adminUser = userRepository.save(adminUser);
+
+		 Authority adminAuth = new Authority();
+		 adminAuth.setName(AuthorityName.ROLE_ADMIN);
+		 adminAuth.addUser(adminUser);
+		 Authority adAuth = authorityRepository.save(adminAuth);
+
+		 Authority userAuth = new Authority();
+		 userAuth.setName(AuthorityName.ROLE_USER);
+		 userAuth.addUser(adminUser);
+		 Authority usAuth = authorityRepository.save(userAuth);
+
+		 adminUser.addAuthority(adAuth);
+		 adminUser.addAuthority(usAuth);
+
+		 adminUser = userRepository.save(adminUser);
+
 		 User user = new User();
-		 user.setUsername(userName);
+		 user.setUsername("jszuslik");
 		 user.setPassword(passwordEncoder.encode(userPassword));
 		 user.setFirstname(userFirstName);
 		 user.setLastname(userLastName);
 		 user.setEmail(userEmail);
 		 user.setEnabled(enabled);
-
 		 user = userRepository.save(user);
-
-		 Authority adminAuth = new Authority();
-		 adminAuth.setName(AuthorityName.ROLE_ADMIN);
-		 adminAuth.addUser(user);
-		 Authority adAuth = authorityRepository.save(adminAuth);
-
-		 Authority userAuth = new Authority();
-		 userAuth.setName(AuthorityName.ROLE_USER);
 		 userAuth.addUser(user);
-		 Authority usAuth = authorityRepository.save(userAuth);
-
-		 user.addAuthority(adAuth);
+		 userAuth = authorityRepository.save(userAuth);
 		 user.addAuthority(usAuth);
-
 		 user = userRepository.save(user);
+
 	 }
 
 }
