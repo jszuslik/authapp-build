@@ -45,9 +45,14 @@
             <wire-tap id="authServiceUser" channel="logger"/>
         </interceptors>
     </channel>
-    <channel id="authProtected">
+    <channel id="authRegisterTransform">
         <interceptors>
-            <wire-tap id="authServiceProtected" channel="logger"/>
+            <wire-tap id="authServiceRegisterTransform" channel="logger"/>
+        </interceptors>
+    </channel>
+    <channel id="authRegistered">
+        <interceptors>
+            <wire-tap id="authServiceRegistered" channel="logger"/>
         </interceptors>
     </channel>
 
@@ -60,14 +65,17 @@
 
     <!-- HTTP inbound gateway will listen for requests -->
     <int-http:inbound-gateway
-            request-channel="authProtected"
-            supported-methods="GET"
+            request-channel="authRegisterTransform"
+            supported-methods="POST"
             reply-timeout="30000"
             path="/protected"/>
+    <json-to-object-transformer type="com.norulesweb.authapp.core.service.security.UserDTO"
+                                input-channel="authRegisterTransform"
+                                output-channel="authRegistered"
     <transformer
-            input-channel="authProtected"
+            input-channel="authRegistered"
             ref="authAppService"
-            method="getProtectedGreeting"/>
+            method="registerNewUser"/>
 
     <int-http:inbound-gateway
             request-channel="authUser"

@@ -5,6 +5,8 @@ import com.norulesweb.authapp.api.security.JwtUser;
 import com.norulesweb.authapp.api.security.service.JwtAuthenticationResponse;
 import com.norulesweb.authapp.api.security.service.JwtUserDetailsServiceImpl;
 import com.norulesweb.authapp.core.repository.security.UserRepository;
+import com.norulesweb.authapp.core.service.security.UserDTO;
+import com.norulesweb.authapp.core.service.security.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,25 +56,15 @@ public class AuthAppService {
 	@Value("${jwt.header.password}")
 	private String headerPassword;
 
+	@Autowired
+	protected UserService userService;
+
 	@Transformer
 	public ResponseEntity<?> createAuthenticationToken() throws AuthenticationException {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
 		String username = request.getHeader(this.headerUser);
 		String password = request.getHeader(this.headerPassword);
-
-//		String username = authenticationRequest.getPayload().getUsername();
-//		String password = authenticationRequest.getPayload().getPassword();
-
-//		JwtUser user = userDetailsService.loadUserByUsername(username);
-//
-//		if(null == user || (! BCrypt.checkpw(password, user.getPassword()))) {
-//			throw new BadCredentialsException("Invalid username or password");
-//		}
-//		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-//		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//		logger.info("authenticated user " + username + ", setting security context");
-//		SecurityContextHolder.getContext().setAuthentication(authentication);
 
 		if(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
 			// Reload password post-security so we can generate token
@@ -121,9 +113,12 @@ public class AuthAppService {
 
 	@Transformer
 	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<?> getProtectedGreeting(){
+	public ResponseEntity<?> registerNewUser(UserDTO userDTO){
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		return ResponseEntity.ok("Greetings from admin protected method!");
+		UserDTO newUserDTO = userService.createAppUser(userDTO);
+		newUserDTO = userService.addUserAuth(newUserDTO);
+
+		return new ResponseEntity(newUserDTO, HttpStatus.OK);
 	}
 
 }
