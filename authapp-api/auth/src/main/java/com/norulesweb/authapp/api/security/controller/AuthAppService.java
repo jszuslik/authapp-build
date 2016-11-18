@@ -17,6 +17,7 @@ import org.springframework.integration.annotation.Transformer;
 import org.springframework.messaging.Message;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -66,10 +67,14 @@ public class AuthAppService {
 
 		if(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
 			// Reload password post-security so we can generate token
-			final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+			JwtUser jwtUser = (JwtUser) authentication.getPrincipal();
+			logger.info("Get Authentication - {}", jwtUser.getUsername());
+			final UserDetails userDetails = userDetailsService.loadUserByUsername(jwtUser.getUsername());
 			final String token = jwtTokenUtil.generateToken(userDetails);
+			final JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(token);
 			// Return the token
-			return ResponseEntity.ok(new JwtAuthenticationResponse(token));
+			return new ResponseEntity<>(jwtAuthenticationResponse, HttpStatus.OK);
 		}
 		return new ResponseEntity<>("Invalid Credentials",HttpStatus.BAD_REQUEST);
 
