@@ -1,6 +1,5 @@
 package com.norulesweb.authapp.api.security.controller;
 
-import com.norulesweb.authapp.api.security.JwtAuthenticationRequest;
 import com.norulesweb.authapp.api.security.JwtTokenUtil;
 import com.norulesweb.authapp.api.security.JwtUser;
 import com.norulesweb.authapp.api.security.service.JwtAuthenticationResponse;
@@ -14,13 +13,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.integration.annotation.MessageEndpoint;
 import org.springframework.integration.annotation.Transformer;
-import org.springframework.messaging.Message;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -48,12 +48,21 @@ public class AuthAppService {
 	@Autowired
 	protected UserRepository userRepository;
 
+	@Value("${jwt.header.user}")
+	private String headerUser;
+
+	@Value("${jwt.header.password}")
+	private String headerPassword;
+
 	@Transformer
-	public ResponseEntity<?> createAuthenticationToken(Message<JwtAuthenticationRequest> authenticationRequest) throws AuthenticationException {
+	public ResponseEntity<?> createAuthenticationToken() throws AuthenticationException {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
-		String username = authenticationRequest.getPayload().getUsername();
-		String password = authenticationRequest.getPayload().getPassword();
+		String username = request.getHeader(this.headerUser);
+		String password = request.getHeader(this.headerPassword);
+
+//		String username = authenticationRequest.getPayload().getUsername();
+//		String password = authenticationRequest.getPayload().getPassword();
 
 //		JwtUser user = userDetailsService.loadUserByUsername(username);
 //
@@ -71,6 +80,12 @@ public class AuthAppService {
 			JwtUser jwtUser = (JwtUser) authentication.getPrincipal();
 			logger.info("Get Authentication - {}", jwtUser.getUsername());
 			final UserDetails userDetails = userDetailsService.loadUserByUsername(jwtUser.getUsername());
+			if (!BCrypt.checkpw(password, userDetails.getPassword())) {
+				throw new BadCredentialsException("Invalid password");
+			}
+			if (!username.equals(userDetails.getUsername())){
+				throw new BadCredentialsException("Invalid username - case sensitive");
+			}
 			final String token = jwtTokenUtil.generateToken(userDetails);
 			final JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(token);
 			// Return the token

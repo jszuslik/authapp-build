@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -63,16 +64,18 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 				logger.info("authenticated user " + username + ", setting security context");
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
-		} else {
+		} else if (!StringUtils.isEmpty(authUser) || !StringUtils.isEmpty(authPassword)){
 			JwtUser user = userDetailsService.loadUserByUsername(authUser);
 
-			if(null == user || (! BCrypt.checkpw(authPassword, user.getPassword()))) {
-				throw new BadCredentialsException("Invalid username or password");
+			if(user != null) {
+				if (!BCrypt.checkpw(authPassword, user.getPassword())) {
+					throw new BadCredentialsException("Invalid username or password");
+				}
+				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				logger.info("authenticated user " + username + ", setting security context");
+				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
-			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-			logger.info("authenticated user " + username + ", setting security context");
-			SecurityContextHolder.getContext().setAuthentication(authentication);
 		}
 
 		chain.doFilter(request, response);
