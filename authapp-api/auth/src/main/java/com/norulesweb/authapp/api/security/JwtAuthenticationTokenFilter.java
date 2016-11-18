@@ -5,9 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -30,8 +32,16 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 	@Value("${jwt.header}")
 	private String tokenHeader;
 
+	@Value("${jwt.header.user}")
+	private String headerUser;
+
+	@Value("${jwt.header.password}")
+	private String headerPassword;
+
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+		String authUser = request.getHeader(this.headerUser);
+		String authPassword = request.getHeader(this.headerPassword);
 		String authToken = request.getHeader(this.tokenHeader);
 		// authToken.startsWith("Bearer ")
 		// String authToken = header.substring(7);
@@ -54,7 +64,15 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
 		} else {
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+			JwtUser user = userDetailsService.loadUserByUsername(authUser);
+
+			if(null == user || (! BCrypt.checkpw(authPassword, user.getPassword()))) {
+				throw new BadCredentialsException("Invalid username or password");
+			}
+			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+			logger.info("authenticated user " + username + ", setting security context");
+			SecurityContextHolder.getContext().setAuthentication(authentication);
 		}
 
 		chain.doFilter(request, response);

@@ -6,6 +6,7 @@ import com.norulesweb.authapp.api.security.service.JwtUserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -36,9 +37,15 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 
 	@Autowired
 	public void configureAuthentication(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
-		authenticationManagerBuilder.jdbcAuthentication().dataSource(this.dataSource)
-				.usersByUsernameQuery("select USERNAME as principal, PASSWORD as credentials, true from user where USERNAME = ?")
-				.authoritiesByUsernameQuery("select u.username, a.authority from user u join authority a on u.userId = a.userId where username = ?");
+		authenticationManagerBuilder.jdbcAuthentication().dataSource(this.dataSource);
+	}
+
+	@Bean
+	public DaoAuthenticationProvider daoAuthenticationProvider() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+		provider.setUserDetailsService(userDetailsService);
+		provider.setPasswordEncoder(new BCryptPasswordEncoder());
+		return provider;
 	}
 
 	@Bean
@@ -55,8 +62,14 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 		web.ignoring().antMatchers("/api-auth/auth/**");
 	}
 
+	@Autowired
+	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+		auth.authenticationProvider(daoAuthenticationProvider());
+	}
+
 	@Override
 	protected void configure(HttpSecurity httpSecurity) throws Exception {
+
 		httpSecurity
 				// we don't need CSRF because our token is invulnerable
 				.csrf().disable()
@@ -66,6 +79,7 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
 
 				.authorizeRequests()
+				.antMatchers("/api-auth/auth").permitAll()
 				.anyRequest().authenticated().and()
 
 				.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);

@@ -10,18 +10,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.integration.annotation.MessageEndpoint;
 import org.springframework.integration.annotation.Transformer;
 import org.springframework.messaging.Message;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -56,22 +54,25 @@ public class AuthAppService {
 		String username = authenticationRequest.getPayload().getUsername();
 		String password = authenticationRequest.getPayload().getPassword();
 
-		JwtUser user = userDetailsService.loadUserByUsername(username);
+//		JwtUser user = userDetailsService.loadUserByUsername(username);
+//
+//		if(null == user || (! BCrypt.checkpw(password, user.getPassword()))) {
+//			throw new BadCredentialsException("Invalid username or password");
+//		}
+//		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+//		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//		logger.info("authenticated user " + username + ", setting security context");
+//		SecurityContextHolder.getContext().setAuthentication(authentication);
 
-		if(null == user || (! BCrypt.checkpw(password, user.getPassword()))) {
-			throw new BadCredentialsException("Invalid username or password");
+		if(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
+			// Reload password post-security so we can generate token
+			final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+			final String token = jwtTokenUtil.generateToken(userDetails);
+			// Return the token
+			return ResponseEntity.ok(new JwtAuthenticationResponse(token));
 		}
-		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-		logger.info("authenticated user " + username + ", setting security context");
-		SecurityContextHolder.getContext().setAuthentication(authentication);
+		return new ResponseEntity<>("Invalid Credentials",HttpStatus.BAD_REQUEST);
 
-		// Reload password post-security so we can generate token
-		final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getPayload().getUsername());
-		final String token = jwtTokenUtil.generateToken(userDetails);
-
-		// Return the token
-		return ResponseEntity.ok(new JwtAuthenticationResponse(token));
 	}
 	@Transformer
 	public ResponseEntity<?> refreshAndGetAuthenticationToken(){
@@ -99,6 +100,7 @@ public class AuthAppService {
 	}
 
 	@Transformer
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<?> getProtectedGreeting(){
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		return ResponseEntity.ok("Greetings from admin protected method!");

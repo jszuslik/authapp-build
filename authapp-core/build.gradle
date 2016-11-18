@@ -27,7 +27,7 @@ dependencyManagement {
 }
 
 
-group 'com.rev360.smartflow'
+group 'com.norulesweb.authapp.core'
 
 
 sourceCompatibility = 1.8
