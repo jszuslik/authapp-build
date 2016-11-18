@@ -71,7 +71,7 @@
             path="/protected"/>
     <json-to-object-transformer type="com.norulesweb.authapp.core.service.security.UserDTO"
                                 input-channel="authRegisterTransform"
-                                output-channel="authRegistered"
+                                output-channel="authRegistered"/>
     <transformer
             input-channel="authRegistered"
             ref="authAppService"
