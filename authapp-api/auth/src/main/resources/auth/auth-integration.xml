@@ -55,6 +55,16 @@
             <wire-tap id="authServiceRegistered" channel="logger"/>
         </interceptors>
     </channel>
+    <channel id="deleteUser">
+        <interceptors>
+            <wire-tap id="deleteUserService" channel="logger"/>
+        </interceptors>
+    </channel>
+    <channel id="deleteUserTransform">
+        <interceptors>
+            <wire-tap id="deleteUserTransformService" channel="logger"/>
+        </interceptors>
+    </channel>
 
 
     <context:component-scan base-package="com.norulesweb.authapp.api"/>
@@ -65,10 +75,23 @@
 
     <!-- HTTP inbound gateway will listen for requests -->
     <int-http:inbound-gateway
+            request-channel="deleteUser"
+            supported-methods="POST"
+            reply-timeout="30000"
+            path="/deleteuser"/>
+    <json-to-object-transformer type="com.norulesweb.authapp.core.service.security.UserDTO"
+                                input-channel="deleteUser"
+                                output-channel="deleteUserTransform"/>
+    <transformer
+            input-channel="deleteUserTransform"
+            ref="authAppService"
+            method="deleteUser"/>
+
+    <int-http:inbound-gateway
             request-channel="authRegisterTransform"
             supported-methods="POST"
             reply-timeout="30000"
-            path="/protected"/>
+            path="/register"/>
     <json-to-object-transformer type="com.norulesweb.authapp.core.service.security.UserDTO"
                                 input-channel="authRegisterTransform"
                                 output-channel="authRegistered"/>

@@ -2,8 +2,10 @@ package com.norulesweb.authapp.api.security.controller;
 
 import com.norulesweb.authapp.api.security.JwtTokenUtil;
 import com.norulesweb.authapp.api.security.JwtUser;
+import com.norulesweb.authapp.api.security.service.JwtAuthenticationError;
 import com.norulesweb.authapp.api.security.service.JwtAuthenticationResponse;
 import com.norulesweb.authapp.api.security.service.JwtUserDetailsServiceImpl;
+import com.norulesweb.authapp.core.model.security.User;
 import com.norulesweb.authapp.core.repository.security.UserRepository;
 import com.norulesweb.authapp.core.service.security.UserDTO;
 import com.norulesweb.authapp.core.service.security.UserService;
@@ -11,13 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.integration.annotation.MessageEndpoint;
 import org.springframework.integration.annotation.Transformer;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +29,10 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Collection;
+
+import static org.springframework.integration.http.HttpHeaders.STATUS_CODE;
 
 @Component
 @MessageEndpoint
@@ -60,8 +65,14 @@ public class AuthAppService {
 	protected UserService userService;
 
 	@Transformer
-	public ResponseEntity<?> createAuthenticationToken() throws AuthenticationException {
+	public Message<?> createAuthenticationToken() throws AuthenticationException {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
+
+		Collection<String> headerNames = response.getHeaderNames();
+		for(String headerName : headerNames) {
+			logger.info("{}", headerName);
+		}
 
 		String username = request.getHeader(this.headerUser);
 		String password = request.getHeader(this.headerPassword);
@@ -73,21 +84,23 @@ public class AuthAppService {
 			logger.info("Get Authentication - {}", jwtUser.getUsername());
 			final UserDetails userDetails = userDetailsService.loadUserByUsername(jwtUser.getUsername());
 			if (!BCrypt.checkpw(password, userDetails.getPassword())) {
-				throw new BadCredentialsException("Invalid password");
+				JwtAuthenticationError error = new JwtAuthenticationError("Invalid Password");
+				return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 			}
 			if (!username.equals(userDetails.getUsername())){
-				throw new BadCredentialsException("Invalid username - case sensitive");
+				JwtAuthenticationError error = new JwtAuthenticationError("Invalid Username");
+				return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 			}
 			final String token = jwtTokenUtil.generateToken(userDetails);
 			final JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(token);
 			// Return the token
-			return new ResponseEntity<>(jwtAuthenticationResponse, HttpStatus.OK);
+			return MessageBuilder.withPayload(jwtAuthenticationResponse).setHeader(STATUS_CODE, 200).build();
 		}
-		return new ResponseEntity<>("Invalid Credentials",HttpStatus.BAD_REQUEST);
-
+		JwtAuthenticationError error = new JwtAuthenticationError("Invalid Credentials");
+		return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 	}
 	@Transformer
-	public ResponseEntity<?> refreshAndGetAuthenticationToken(){
+	public Message<?> refreshAndGetAuthenticationToken(){
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
 		String token = request.getHeader(tokenHeader);
@@ -96,29 +109,49 @@ public class AuthAppService {
 
 		if (jwtTokenUtil.canTokenBeRefreshed(token, user.getLastPasswordResetDate())) {
 			String refreshedToken = jwtTokenUtil.refreshToken(token);
-			return ResponseEntity.ok(new JwtAuthenticationResponse(refreshedToken));
+			JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(refreshedToken);
+			return MessageBuilder.withPayload(jwtAuthenticationResponse).setHeader(STATUS_CODE, 200).build();
 		} else {
-			return ResponseEntity.badRequest().body(null);
+			JwtAuthenticationError error = new JwtAuthenticationError("Unauthorized");
+			return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 		}
 
 	}
 	@Transformer
-	public JwtUser getAuthenticatedUser() {
+	public Message<?> getAuthenticatedUser() {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		String token = request.getHeader(tokenHeader);
 		String username = jwtTokenUtil.getUsernameFromToken(token);
 		JwtUser user = userDetailsService.loadUserByUsername(username);
-		return user;
+		return MessageBuilder.withPayload(user).setHeader(STATUS_CODE, 200).build();
 	}
 
 	@Transformer
 	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<?> registerNewUser(UserDTO userDTO){
-		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		UserDTO newUserDTO = userService.createAppUser(userDTO);
+	public Message<?> registerNewUser(Message<UserDTO> userDTO){
+		UserDTO newUserDTO = userService.createAppUser(userDTO.getPayload());
 		newUserDTO = userService.addUserAuth(newUserDTO);
+		JwtUser user = userDetailsService.loadUserByUsername(newUserDTO.getUsername());
+		if(user != null){
+			return MessageBuilder.withPayload(user).setHeader(STATUS_CODE, 200).build();
+		}
+		return MessageBuilder.withPayload("Failure to register user").setHeader(STATUS_CODE, 409).build();
+	}
 
-		return new ResponseEntity(newUserDTO, HttpStatus.OK);
+	@Transformer
+	@PreAuthorize("hasRole('ADMIN')")
+	public Message<?> deleteUser(Message<UserDTO> userDTO){
+		User user = userRepository.findByUsername(userDTO.getPayload().getUsername());
+		if(user != null){
+			userRepository.delete(user);
+			user = userRepository.findByUsername(userDTO.getPayload().getUsername());
+			if(user == null){
+				return MessageBuilder.withPayload("User Deleted").setHeader(STATUS_CODE, 200).build();
+			} else {
+				return MessageBuilder.withPayload("User Delete Failed").setHeader(STATUS_CODE, 405).build();
+			}
+		}
+		return MessageBuilder.withPayload("User Delete Failed").setHeader(STATUS_CODE, 405).build();
 	}
 
 }

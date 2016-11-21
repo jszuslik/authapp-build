@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -44,20 +43,14 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 		String authUser = request.getHeader(this.headerUser);
 		String authPassword = request.getHeader(this.headerPassword);
 		String authToken = request.getHeader(this.tokenHeader);
-		// authToken.startsWith("Bearer ")
-		// String authToken = header.substring(7);
+
 		String username = jwtTokenUtil.getUsernameFromToken(authToken);
 
 		logger.info("checking authentication for user " + username);
 
 		if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-			// It is not compelling necessary to load the use details from the database. You could also store the information
-			// in the token and read it from it. It's up to you ;)
 			UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-			// For simple validation it is completely sufficient to just check the token integrity. You don't have to call
-			// the database compellingly. Again it's up to you ;)
 			if (jwtTokenUtil.validateToken(authToken, userDetails)) {
 				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -69,7 +62,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
 			if(user != null) {
 				if (!BCrypt.checkpw(authPassword, user.getPassword())) {
-					throw new BadCredentialsException("Invalid username or password");
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid username or password");
 				}
 				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

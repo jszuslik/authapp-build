@@ -54,7 +54,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserDTO addAdminAuth(UserDTO userDTO){
-		Authority adAuth = authorityRepository.findByAuthorityName(AuthorityName.ROLE_ADMIN);
+		Authority adAuth = authorityRepository.findByName(AuthorityName.ROLE_ADMIN);
 		User user = userRepository.findOne(userDTO.getId());
 		adAuth.addUser(user);
 		adAuth = authorityRepository.save(adAuth);
@@ -68,7 +68,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserDTO addUserAuth(UserDTO userDTO) {
-		Authority usAuth = authorityRepository.findByAuthorityName(AuthorityName.ROLE_USER);
+		Authority usAuth = authorityRepository.findByName(AuthorityName.ROLE_USER);
 		User user = userRepository.findOne(userDTO.getId());
 		usAuth.addUser(user);
 		usAuth = authorityRepository.save(usAuth);
