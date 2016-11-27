@@ -7,8 +7,13 @@ import com.norulesweb.authapp.api.security.service.JwtAuthenticationResponse;
 import com.norulesweb.authapp.api.security.service.JwtUserDetailsServiceImpl;
 import com.norulesweb.authapp.core.model.security.User;
 import com.norulesweb.authapp.core.repository.security.UserRepository;
+import com.norulesweb.authapp.core.service.request.DeleteRequest;
+import com.norulesweb.authapp.core.service.request.RegistrationRequest;
+import com.norulesweb.authapp.core.service.response.DeleteResponse;
+import com.norulesweb.authapp.core.service.response.RegistrationResponse;
 import com.norulesweb.authapp.core.service.security.UserDTO;
 import com.norulesweb.authapp.core.service.security.UserService;
+import com.norulesweb.authapp.core.utility.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +24,13 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -112,7 +119,7 @@ public class AuthAppService {
 			JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(refreshedToken);
 			return MessageBuilder.withPayload(jwtAuthenticationResponse).setHeader(STATUS_CODE, 200).build();
 		} else {
-			JwtAuthenticationError error = new JwtAuthenticationError("Unauthorized");
+			JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.UNAUTHORIZED);
 			return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 		}
 
@@ -127,10 +134,41 @@ public class AuthAppService {
 	}
 
 	@Transformer
+	@PreAuthorize("hasRole('ANONYMOUS')")
+	public Message<?> registerFrontEndUser(Message<RegistrationRequest> regestrationRequestMessage) {
+		HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+		RegistrationRequest request = regestrationRequestMessage.getPayload();
+		if(!checkMatchingPassword(request.getPassword(), request.getMatchingPassword()))
+			return MessageBuilder.withPayload("Failure to register user").setHeader(STATUS_CODE, 409).build();
+
+		UserDTO newUserDTO = userService.createAppUser(registerRequestToUserDto(request));
+		newUserDTO = addAuth(newUserDTO, UserConstants.FALSE);
+
+		JwtUser user = userDetailsService.loadUserByUsername(newUserDTO.getUsername());
+
+		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpRequest));
+		logger.info("authenticated user " + user.getUsername() + ", setting security context");
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		if(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
+			RegistrationResponse registrationResponse = new RegistrationResponse();
+			registrationResponse.setToken(jwtTokenUtil.generateToken(user));
+			registrationResponse.setUsername(user.getUsername());
+			return MessageBuilder.withPayload(registrationResponse).setHeader(STATUS_CODE, 200).build();
+		}
+		return MessageBuilder.withPayload("Failure to register user").setHeader(STATUS_CODE, 409).build();
+	}
+
+	@Transformer
 	@PreAuthorize("hasRole('ADMIN')")
-	public Message<?> registerNewUser(Message<UserDTO> userDTO){
-		UserDTO newUserDTO = userService.createAppUser(userDTO.getPayload());
-		newUserDTO = userService.addUserAuth(newUserDTO);
+	public Message<?> registerNewUser(Message<RegistrationRequest> regestrationRequestMessage){
+		RegistrationRequest request = regestrationRequestMessage.getPayload();
+		if(!checkMatchingPassword(request.getPassword(), request.getMatchingPassword()))
+			return MessageBuilder.withPayload("Failure to register user").setHeader(STATUS_CODE, 409).build();
+
+		UserDTO newUserDTO = userService.createAppUser(registerRequestToUserDto(request));
+		newUserDTO = addAuth(newUserDTO, request.getAdmin());
+
 		JwtUser user = userDetailsService.loadUserByUsername(newUserDTO.getUsername());
 		if(user != null){
 			return MessageBuilder.withPayload(user).setHeader(STATUS_CODE, 200).build();
@@ -140,18 +178,45 @@ public class AuthAppService {
 
 	@Transformer
 	@PreAuthorize("hasRole('ADMIN')")
-	public Message<?> deleteUser(Message<UserDTO> userDTO){
-		User user = userRepository.findByUsername(userDTO.getPayload().getUsername());
+	public Message<?> deleteUser(Message<DeleteRequest> deleteRequestMessage){
+		String username = deleteRequestMessage.getPayload().getUsername();
+		User user = userRepository.findByUsername(username);
 		if(user != null){
 			userRepository.delete(user);
-			user = userRepository.findByUsername(userDTO.getPayload().getUsername());
+			user = userRepository.findByUsername(username);
 			if(user == null){
-				return MessageBuilder.withPayload("User Deleted").setHeader(STATUS_CODE, 200).build();
+				return MessageBuilder.withPayload(new DeleteResponse(username, UserConstants.DELETE_SUCCESS)).setHeader(STATUS_CODE, 200).build();
 			} else {
-				return MessageBuilder.withPayload("User Delete Failed").setHeader(STATUS_CODE, 405).build();
+				return MessageBuilder.withPayload(new DeleteResponse(username, UserConstants.DELETE_FAILED)).setHeader(STATUS_CODE, 405).build();
 			}
 		}
-		return MessageBuilder.withPayload("User Delete Failed").setHeader(STATUS_CODE, 405).build();
+		return MessageBuilder.withPayload(new DeleteResponse(username, UserConstants.DELETE_FAILED)).setHeader(STATUS_CODE, 405).build();
+	}
+
+	private Boolean checkMatchingPassword(String password, String matchingPassword){
+		return password.equals(matchingPassword);
+	}
+
+	private UserDTO registerRequestToUserDto(RegistrationRequest regestrationRequest){
+		UserDTO userDTO = new UserDTO();
+		userDTO.setUsername(regestrationRequest.getUsername());
+		userDTO.setPassword(regestrationRequest.getPassword());
+		userDTO.setFirstname(regestrationRequest.getFirstName());
+		userDTO.setLastname(regestrationRequest.getLastName());
+		userDTO.setEmail(regestrationRequest.getEmail());
+		userDTO.setEnabled(UserConstants.TRUE);
+
+		return userDTO;
+	}
+
+	private UserDTO addAuth(UserDTO userDTO, Boolean isAdmin){
+		if(isAdmin){
+			userDTO = userService.addAdminAuth(userDTO);
+			userDTO = userService.addUserAuth(userDTO);
+		} else {
+			userDTO = userService.addUserAuth(userDTO);
+		}
+		return userDTO;
 	}
 
 }

@@ -79,7 +79,7 @@ public class AuthAppWebSecurityConfiguration  extends WebSecurityConfigurerAdapt
 				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
 
 				.authorizeRequests()
-				.antMatchers("/api-auth/auth").permitAll()
+				.antMatchers("/api-auth/auth", "/api-auth/registerfrontend").permitAll()
 				.anyRequest().authenticated().and()
 
 				.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);

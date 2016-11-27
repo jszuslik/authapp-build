@@ -1,11 +1,14 @@
 package com.norulesweb.authapp.api.security;
 
 import com.norulesweb.authapp.api.security.service.JwtUserDetailsServiceImpl;
+import com.norulesweb.authapp.core.utility.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -18,6 +21,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
+
+import static com.norulesweb.authapp.core.utility.UserConstants.ANONYMOUS_USER;
 
 public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
@@ -69,8 +75,28 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 				logger.info("authenticated user " + username + ", setting security context");
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
+		} else {
+			logger.info("PATH INFO - {}", request.getServletPath());
+			if(request.getServletPath().equals("/registerfrontend")) {
+				UserDetails userDetails = this.userDetailsService.loadUserByUsername(UserConstants.ANONYMOUS_USER);
+				if (userDetails != null) {
+					if (!BCrypt.checkpw(UserConstants.ANONYMOUS_PASSWORD, userDetails.getPassword())) {
+						response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid username or password");
+					}
+					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+					authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+					logger.info("authenticated user " + UserConstants.ANONYMOUS_USER + ", setting security context");
+					SecurityContextHolder.getContext().setAuthentication(authentication);
+				}
+			}
 		}
 
 		chain.doFilter(request, response);
+	}
+
+	private AnonymousAuthenticationToken generateAnonymousAuthenticationToken() {
+		SimpleGrantedAuthority grantedAuthorityImpl = new SimpleGrantedAuthority( "ROLE_ANONYMOUS" );
+		return new AnonymousAuthenticationToken( ANONYMOUS_USER, ANONYMOUS_USER,
+				                                       Collections.singletonList( grantedAuthorityImpl ) );
 	}
 }

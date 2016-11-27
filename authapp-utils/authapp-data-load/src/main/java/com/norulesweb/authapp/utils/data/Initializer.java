@@ -94,6 +94,10 @@ public class Initializer {
 		 userAuth.addUser(adminUser);
 		 Authority usAuth = authorityRepository.save(userAuth);
 
+		 Authority anonAuth = new Authority();
+		 anonAuth.setName(AuthorityName.ROLE_ANONYMOUS);
+		 Authority anAuth = authorityRepository.save(anonAuth);
+
 		 adminUser.addAuthority(adAuth);
 		 adminUser.addAuthority(usAuth);
 
@@ -111,6 +115,19 @@ public class Initializer {
 		 userAuth = authorityRepository.save(userAuth);
 		 user.addAuthority(usAuth);
 		 user = userRepository.save(user);
+
+		 User anonUser = new User();
+		 anonUser.setUsername("anonymous");
+		 anonUser.setPassword(passwordEncoder.encode(userPassword));
+		 anonUser.setFirstname(userFirstName);
+		 anonUser.setLastname(userLastName);
+		 anonUser.setEmail(userEmail);
+		 anonUser.setEnabled(enabled);
+		 anonUser = userRepository.save(anonUser);
+		 anonAuth.addUser(anonUser);
+		 anonAuth = authorityRepository.save(anonAuth);
+		 anonUser.addAuthority(anAuth);
+		 anonUser = userRepository.save(anonUser);
 
 	 }
 
