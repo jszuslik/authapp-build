@@ -68,7 +68,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
 			if(user != null) {
 				if (!BCrypt.checkpw(authPassword, user.getPassword())) {
-					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid username or password");
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, UserConstants.INVALID_PASSWORD);
 				}
 				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -77,11 +77,11 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 			}
 		} else {
 			logger.info("PATH INFO - {}", request.getServletPath());
-			if(request.getServletPath().equals("/registerfrontend")) {
+			if(request.getServletPath().equals(UserConstants.ENDPOINT_FRONT_END_USER_REGISTER)) {
 				UserDetails userDetails = this.userDetailsService.loadUserByUsername(UserConstants.ANONYMOUS_USER);
 				if (userDetails != null) {
 					if (!BCrypt.checkpw(UserConstants.ANONYMOUS_PASSWORD, userDetails.getPassword())) {
-						response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid username or password");
+						response.sendError(HttpServletResponse.SC_UNAUTHORIZED, UserConstants.INVALID_PASSWORD);
 					}
 					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 					authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
