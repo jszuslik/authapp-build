@@ -36,8 +36,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.Collection;
 
 import static org.springframework.integration.http.HttpHeaders.STATUS_CODE;
 
@@ -74,12 +72,6 @@ public class AuthAppService {
 	@Transformer
 	public Message<?> createAuthenticationToken() throws AuthenticationException {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
-
-		Collection<String> headerNames = response.getHeaderNames();
-		for(String headerName : headerNames) {
-			logger.info("{}", headerName);
-		}
 
 		String username = request.getHeader(this.headerUser);
 		String password = request.getHeader(this.headerPassword);
@@ -91,11 +83,11 @@ public class AuthAppService {
 			logger.info("Get Authentication - {}", jwtUser.getUsername());
 			final UserDetails userDetails = userDetailsService.loadUserByUsername(jwtUser.getUsername());
 			if (!BCrypt.checkpw(password, userDetails.getPassword())) {
-				JwtAuthenticationError error = new JwtAuthenticationError("Invalid Password");
+				JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.INVALID_PASSWORD);
 				return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 			}
 			if (!username.equals(userDetails.getUsername())){
-				JwtAuthenticationError error = new JwtAuthenticationError("Invalid Username");
+				JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.INVALID_USERNAME);
 				return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 			}
 			final String token = jwtTokenUtil.generateToken(userDetails);
@@ -103,7 +95,7 @@ public class AuthAppService {
 			// Return the token
 			return MessageBuilder.withPayload(jwtAuthenticationResponse).setHeader(STATUS_CODE, 200).build();
 		}
-		JwtAuthenticationError error = new JwtAuthenticationError("Invalid Credentials");
+		JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.INVALID_USER_OR_PW);
 		return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
 	}
 	@Transformer
