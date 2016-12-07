@@ -7,6 +7,6 @@ import com.norulesweb.authapp.core.model.security.AuthorityName;
 import java.util.List;
 
 public interface AuthorityRepository extends AppRepository<Authority, Long>{
-	Authority findByAuthorityName(AuthorityName authorityName);
+	Authority findByName(AuthorityName name);
 	List<Authority> findAll();
 }

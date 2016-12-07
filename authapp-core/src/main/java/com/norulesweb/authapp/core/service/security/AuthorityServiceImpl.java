@@ -26,10 +26,10 @@ public class AuthorityServiceImpl implements AuthorityService {
 		AuthorityName authorityName = AuthorityName.valueOf(name);
 		switch (authorityName){
 			case ROLE_ADMIN:
-				authority = authorityRepository.findByAuthorityName(ROLE_ADMIN);
+				authority = authorityRepository.findByName(ROLE_ADMIN);
 				break;
 			case ROLE_USER:
-				authority = authorityRepository.findByAuthorityName(ROLE_USER);
+				authority = authorityRepository.findByName(ROLE_USER);
 				break;
 			default:
 				authority = null;
