@@ -19,5 +19,5 @@
 /authapp-core/build
 /authapp-core/src/main/generated
 /authapp-utils/build
-/authapp-utils/core/build
+
 /authapp-utils/authapp-data-load/build
