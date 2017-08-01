@@ -10,6 +10,7 @@ import com.norulesweb.authapp.core.repository.security.UserRepository;
 import com.norulesweb.authapp.core.service.request.DeleteRequest;
 import com.norulesweb.authapp.core.service.request.RegistrationRequest;
 import com.norulesweb.authapp.core.service.response.DeleteResponse;
+import com.norulesweb.authapp.core.service.response.ErrorResponse;
 import com.norulesweb.authapp.core.service.response.RegistrationResponse;
 import com.norulesweb.authapp.core.service.security.UserDTO;
 import com.norulesweb.authapp.core.service.security.UserService;
@@ -76,6 +77,9 @@ public class AuthAppService {
 		String username = request.getHeader(this.headerUser);
 		String password = request.getHeader(this.headerPassword);
 
+		logger.info("Username - {}", username);
+		logger.info("Password - {}", password);
+
 		if(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
 			// Reload password post-security so we can generate token
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -131,9 +135,12 @@ public class AuthAppService {
 		HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		RegistrationRequest request = regestrationRequestMessage.getPayload();
 		if(!checkMatchingPassword(request.getPassword(), request.getMatchingPassword()))
-			return MessageBuilder.withPayload("Failure to register user").setHeader(STATUS_CODE, 409).build();
+			return MessageBuilder.withPayload(new ErrorResponse("409", "Failure to register user")).setHeader(STATUS_CODE, 400).build();
 
 		UserDTO newUserDTO = userService.createAppUser(registerRequestToUserDto(request));
+		if(newUserDTO == null) {
+			return MessageBuilder.withPayload(new ErrorResponse("409", "User with username already exists")).setHeader(STATUS_CODE, 409).build();
+		}
 		newUserDTO = addAuth(newUserDTO, UserConstants.FALSE);
 
 		JwtUser user = userDetailsService.loadUserByUsername(newUserDTO.getUsername());
@@ -148,7 +155,7 @@ public class AuthAppService {
 			registrationResponse.setUsername(user.getUsername());
 			return MessageBuilder.withPayload(registrationResponse).setHeader(STATUS_CODE, 200).build();
 		}
-		return MessageBuilder.withPayload("Failure to register user").setHeader(STATUS_CODE, 409).build();
+		return MessageBuilder.withPayload(new ErrorResponse("409", "Failure to register user")).setHeader(STATUS_CODE, 400).build();
 	}
 
 	@Transformer
@@ -184,6 +191,9 @@ public class AuthAppService {
 		}
 		return MessageBuilder.withPayload(new DeleteResponse(username, UserConstants.DELETE_FAILED)).setHeader(STATUS_CODE, 405).build();
 	}
+
+	@Transformer
+
 
 	private Boolean checkMatchingPassword(String password, String matchingPassword){
 		return password.equals(matchingPassword);

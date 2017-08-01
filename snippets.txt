@@ -1,0 +1,3 @@
+java -Dspring.jpa.hibernate.ddl-auto=create "-Dspring.datasource.url=jdbc:mysql://localhost:3306/spring_app_ddl?useLegacyDatetimeCode=false&serverTimezone=UTC" -jar C:\Users\joshua.szuslik\myprojects\authapp-build\authapp-utils\authapp-data-load\build\libs\authapp-utils-data-load-0.0.1.jar
+
+gradle -PdbUrl=jdbc:mysql://localhost:3306/spring_app_ddl -PliquibaseChangeLog=db/releases/0.0.1/changelog.xml :authapp-core:liquibaseGenerateChangelog

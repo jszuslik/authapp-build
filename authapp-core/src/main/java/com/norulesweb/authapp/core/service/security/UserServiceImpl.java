@@ -29,6 +29,13 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserDTO createAppUser(UserDTO newUserDTO) {
+
+		User user = userRepository.findByUsername(newUserDTO.getUsername());
+
+		if(user != null) {
+			return null;
+		}
+
 		BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 		String encodedPassword = passwordEncoder.encode(newUserDTO.getPassword());
@@ -45,7 +52,7 @@ public class UserServiceImpl implements UserService {
 	@Transactional(readOnly = true)
 	public UserDTO findUserByUserId(String username){
 		User user = userRepository.findByUsername(username);
-		if (username.isEmpty()) {
+		if (user == null) {
 			return null;
 		} else {
 			return new UserDTO(user);

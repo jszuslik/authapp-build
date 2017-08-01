@@ -8,12 +8,11 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jms.JmsAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.embedded.FilterRegistrationBean;
+import org.springframework.boot.context.web.ErrorPageFilter;
 import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.boot.orm.jpa.EntityScan;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ImportResource;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.annotation.PropertySources;
+import org.springframework.context.annotation.*;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -50,4 +49,5 @@ public class AuthApplication extends SpringBootServletInitializer {
 	public static void main(String[] args) {
 		SpringApplication.run(AuthApplication.class, args);
 	}
+
 }

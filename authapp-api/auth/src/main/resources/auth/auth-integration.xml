@@ -76,7 +76,6 @@
         </interceptors>
     </channel>
 
-
     <context:component-scan base-package="com.norulesweb.authapp.api"/>
 
     <context:component-scan base-package="com.norulesweb.authapp.core"/>

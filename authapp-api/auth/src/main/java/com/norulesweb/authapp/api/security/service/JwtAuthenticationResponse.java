@@ -13,6 +13,6 @@ public class JwtAuthenticationResponse implements Serializable {
 	}
 
 	public String getToken() {
-		return this.token;
+		return token;
 	}
 }

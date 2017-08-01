@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-1">
+        <createTable tableName="authorities">
+            <column autoIncrement="true" name="ID" type="BIGINT">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="NAME" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-2">
+        <createTable tableName="user">
+            <column autoIncrement="true" name="ID" type="BIGINT">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="EMAIL" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ENABLED" type="BIT(1)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="FIRSTNAME" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LASTPASSWORDRESETDATE" type="datetime(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LASTNAME" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PASSWORD" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="USERNAME" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-3">
+        <createTable tableName="user_authority">
+            <column name="USER_ID" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="AUTHORITY_ID" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-4">
+        <addUniqueConstraint columnNames="USERNAME" constraintName="UK_lb5yrvw2c22im784wwrpwuq06" tableName="user"/>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-5">
+        <createIndex indexName="FK_dyo9anhb75hbjut13e8uovw2s" tableName="user_authority">
+            <column name="AUTHORITY_ID"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-6">
+        <createIndex indexName="FK_jbm4yrlayhtksry4mwk0e47ls" tableName="user_authority">
+            <column name="USER_ID"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-7">
+        <addForeignKeyConstraint baseColumnNames="AUTHORITY_ID" baseTableName="user_authority" constraintName="FK_dyo9anhb75hbjut13e8uovw2s" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="ID" referencedTableName="authorities"/>
+    </changeSet>
+    <changeSet author="joshua.szuslik (generated)" id="1496851352359-8">
+        <addForeignKeyConstraint baseColumnNames="USER_ID" baseTableName="user_authority" constraintName="FK_jbm4yrlayhtksry4mwk0e47ls" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="ID" referencedTableName="user"/>
+    </changeSet>
+</databaseChangeLog>

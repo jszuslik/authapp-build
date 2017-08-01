@@ -1,0 +1,47 @@
+*** Authorization ***
+/**
+ * Returns User Authentication Token
+ */
+
+URL: <domain>/api-auth/auth
+TYPE: GET
+
+Headers -
+Accept: application/json
+X-Auth-Username: <username>
+X-Auth-Password: <password>
+
+
+*** Registration ***
+/**
+ * Registers a new user
+ */
+
+URL: <domain>/api-auth/registerfrontend
+TYPE: POST
+
+Headers -
+Accept: application/json
+Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+Payload -
+{
+    "username": "<username>",
+    "password": "<password>",
+    "matchingPassword": "<matchingPassword>",
+    "firstName": "<firstName>",
+    "lastName": "<lastName>",
+    "email": "<email>",
+    "admin": false
+}
+
+Success Response -
+{
+  "username": "<username>",
+  "token": "<token>"
+}
+
+Failure Response -
+{
+
+}
