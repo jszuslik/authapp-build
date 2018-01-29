@@ -37,6 +37,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import static org.springframework.integration.http.HttpHeaders.STATUS_CODE;
 
@@ -73,46 +74,34 @@ public class AuthAppService {
 	@Transformer
 	public Message<?> createAuthenticationToken() throws AuthenticationException {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-
-		String username = request.getHeader(this.headerUser);
-		String password = request.getHeader(this.headerPassword);
-
-		logger.info("Username - {}", username);
-		logger.info("Password - {}", password);
-
 		if(SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
-			// Reload password post-security so we can generate token
-			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-			JwtUser jwtUser = (JwtUser) authentication.getPrincipal();
-			logger.info("Get Authentication - {}", jwtUser.getUsername());
-			final UserDetails userDetails = userDetailsService.loadUserByUsername(jwtUser.getUsername());
-			if (!BCrypt.checkpw(password, userDetails.getPassword())) {
-				JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.INVALID_PASSWORD);
-				return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
-			}
-			if (!username.equals(userDetails.getUsername())){
-				JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.INVALID_USERNAME);
-				return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
-			}
-			final String token = jwtTokenUtil.generateToken(userDetails);
-			final JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(token);
-			// Return the token
+			String token = request.getHeader(this.tokenHeader);
+			String username = jwtTokenUtil.getUsernameFromToken(token);
+			String authResponse = "Authenticated User - " + username;
+
+			final JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(authResponse);
+			logger.info("{} - Authenticated user - {}", getClass().toString(), username);
+
 			return MessageBuilder.withPayload(jwtAuthenticationResponse).setHeader(STATUS_CODE, 200).build();
 		}
 		JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.INVALID_USER_OR_PW);
-		return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, 401).build();
+		return MessageBuilder.withPayload(error).setHeader(STATUS_CODE, HttpServletResponse.SC_UNAUTHORIZED).build();
 	}
+
 	@Transformer
 	public Message<?> refreshAndGetAuthenticationToken(){
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
 
 		String token = request.getHeader(tokenHeader);
 		String username = jwtTokenUtil.getUsernameFromToken(token);
 		JwtUser user = userDetailsService.loadUserByUsername(username);
-
-		if (jwtTokenUtil.canTokenBeRefreshed(token, user.getLastPasswordResetDate())) {
+		if (null != user && jwtTokenUtil.canTokenBeRefreshed(token, user.getLastPasswordResetDate())) {
 			String refreshedToken = jwtTokenUtil.refreshToken(token);
-			JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(refreshedToken);
+			response.setHeader(this.tokenHeader, refreshedToken);
+			String authResponse = "Authenticated User - " + username;
+			logger.info("{} - Authenticated user - {}", getClass().toString(), username);
+			JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(authResponse);
 			return MessageBuilder.withPayload(jwtAuthenticationResponse).setHeader(STATUS_CODE, 200).build();
 		} else {
 			JwtAuthenticationError error = new JwtAuthenticationError(UserConstants.UNAUTHORIZED);
@@ -120,6 +109,7 @@ public class AuthAppService {
 		}
 
 	}
+
 	@Transformer
 	public Message<?> getAuthenticatedUser() {
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();

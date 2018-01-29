@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -52,29 +53,34 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
 		String username = jwtTokenUtil.getUsernameFromToken(authToken);
 
-		logger.info("checking authentication for user " + username);
-
-		if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+		if (null != username) {
+			logger.info("{} - checking authentication for user {}", getClass().toString(), username);
 			UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-
-			if (jwtTokenUtil.validateToken(authToken, userDetails)) {
+			Boolean isValidToken = jwtTokenUtil.validateToken(authToken, userDetails);
+			if(isValidToken) {
 				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-				logger.info("authenticated user " + username + ", setting security context");
 				SecurityContextHolder.getContext().setAuthentication(authentication);
+				response.setHeader(this.tokenHeader, authToken);
 			}
 		} else if (!StringUtils.isEmpty(authUser) || !StringUtils.isEmpty(authPassword)){
 			JwtUser user = userDetailsService.loadUserByUsername(authUser);
 
-			if(user != null) {
-				if (!BCrypt.checkpw(authPassword, user.getPassword())) {
-					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, UserConstants.INVALID_PASSWORD);
-				}
-				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-				logger.info("authenticated user " + username + ", setting security context");
-				SecurityContextHolder.getContext().setAuthentication(authentication);
+			if(null == user) {
+				logger.info("{} - Username {} does not exist", getClass().toString(),authUser);
+				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, UserConstants.INVALID_USERNAME);
 			}
+
+			if (!BCrypt.checkpw(authPassword, user.getPassword())) {
+				logger.info("{} - Password not valid", getClass().toString());
+				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, UserConstants.INVALID_PASSWORD);
+			}
+
+			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+			final String token = jwtTokenUtil.generateToken(user);
+			response.setHeader(this.tokenHeader, token);
 		} else {
 			logger.info("PATH INFO - {}", request.getServletPath());
 			if(request.getServletPath().equals(UserConstants.ENDPOINT_FRONT_END_USER_REGISTER)) {
@@ -85,7 +91,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 					}
 					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 					authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-					logger.info("authenticated user " + UserConstants.ANONYMOUS_USER + ", setting security context");
+					logger.info("authenticated user " + UserConstants.ANONYMOUS_USER + ", setting security context 3");
 					SecurityContextHolder.getContext().setAuthentication(authentication);
 				}
 			}

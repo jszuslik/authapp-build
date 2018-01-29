@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ComponentScan(
 		basePackages = {
 				               "com.norulesweb.authapp.core",
-				               "com.norulesweb.authapp.api.security"
+				               "com.norulesweb.authapp.api"
 		}
 )
 @EnableAutoConfiguration(exclude={

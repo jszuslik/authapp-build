@@ -21,3 +21,5 @@
 /authapp-utils/build
 /authapp-utils/core/build
 /authapp-utils/authapp-data-load/build
+*.iml
+authapp-api/auth/logs/

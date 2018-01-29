@@ -17,10 +17,12 @@ liquibase {
 
 def changeLogGeneratedDir = file("build/generated/liquibase/changelog").getAbsolutePath()
 
-task prepareGeneratedDir << {
-    def generatedDir = file(changeLogGeneratedDir)
+task prepareGeneratedDir {
+    doLast {
+        def generatedDir = file(changeLogGeneratedDir)
 
-    generatedDir.mkdirs();
+        generatedDir.mkdirs();
+    }
 }
 
 def buildTimestamp() {
